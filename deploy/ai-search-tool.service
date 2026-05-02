@@ -1,0 +1,12 @@
+[Unit]
+Description=AI Search Volume Estimator
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/var/www/ai-kwd-search-tool
+ExecStart=/var/www/ai-kwd-search-tool/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8001 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

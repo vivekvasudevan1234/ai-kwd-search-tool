@@ -302,7 +302,7 @@
   <div class="modal-box">
     <button class="modal-close" id="close-modal">✕</button>
     <video id="tutorial-video" controls>
-      <source src="/static/sparktoro-guide.mp4" type="video/mp4" />
+      <source src="static/sparktoro-guide.mp4" type="video/mp4" />
     </video>
   </div>
 </div>
@@ -350,7 +350,7 @@
     resultsEl.style.display = "none";
 
     try {
-      const res = await fetch("/estimate", {
+      const res = await fetch("estimate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keyword, country, kw_volume, relative_diff }),

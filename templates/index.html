@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Search Volume Estimator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 40px 44px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    h1 {
+      font-size: 1.55rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+    }
+
+    .subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 32px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .label-row label { margin-bottom: 0; }
+
+    .label-link {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #6366f1;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .label-link:hover { text-decoration: underline; }
+
+    .field { margin-bottom: 20px; }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, select:focus { border-color: #6366f1; }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .hint a { color: #6366f1; text-decoration: none; }
+    .hint a:hover { text-decoration: underline; }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #6366f1;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 8px;
+    }
+
+    button:hover { background: #4f46e5; }
+    button:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    #results { margin-top: 32px; display: none; }
+
+    .result-header {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .big-number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      color: #6366f1;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .big-label {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 24px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: #f9fafb;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .formula-box {
+      background: #f0f0ff;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      color: #4338ca;
+      font-family: "SF Mono", "Fira Code", monospace;
+      word-break: break-all;
+    }
+
+    .error-box {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.84rem;
+      color: #991b1b;
+      margin-top: 16px;
+    }
+
+    /* Video modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal-box {
+      background: #111;
+      border-radius: 14px;
+      overflow: hidden;
+      width: min(900px, 95vw);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      width: auto;
+      padding: 4px 8px;
+      z-index: 10;
+    }
+
+    .modal-box video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16/9;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>AI Search Volume Estimator</h1>
+  <p class="subtitle">Enter your keyword details below to estimate monthly AI search volume.</p>
+
+  <form id="form">
+    <div class="field">
+      <label for="keyword">Keyword</label>
+      <input type="text" id="keyword" placeholder="e.g. programming" autocomplete="off" required />
+    </div>
+
+    <div class="field">
+      <label for="country">Country</label>
+      <select id="country">
+        {% for c in countries %}
+        <option value="{{ c }}" {% if c == "USA" %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <div class="label-row">
+        <label for="kw_volume">Monthly Search Volume</label>
+        <a class="label-link" href="https://seranking.com/keyword-search-volume-checker.html" target="_blank" rel="noopener">Get this free from SE Ranking →</a>
+      </div>
+      <input type="number" id="kw_volume" min="0" step="1" placeholder="e.g. 22000" required />
+      <p class="hint">Go to <a href="https://seranking.com/keyword-search-volume-checker.html" target="_blank" rel="noopener">SE Ranking Keyword Volume Checker</a> — enter your keyword, pick your country, copy the monthly search volume.</p>
+    </div>
+
+    <div class="field">
+      <div class="label-row">
+        <label for="relative_diff">Relative Usage Difference</label>
+        <button type="button" class="label-link" id="open-tutorial" style="background:none;border:none;cursor:pointer;padding:0;">▶ Watch how to find this →</button>
+      </div>
+      <input type="number" id="relative_diff" step="0.1" placeholder="e.g. 8 or -15.2" required />
+      <p class="hint">Enter the % shown against ChatGPT in your SparkToro report. Use it exactly as shown — e.g. −27.3</p>
+    </div>
+
+    <button type="submit" id="submit-btn">Calculate AI Search Volume</button>
+  </form>
+
+  <div id="error-msg" class="error-box" style="display:none;"></div>
+
+  <div id="results">
+    <p class="result-header">Results</p>
+
+    <div class="big-number" id="ai-volume">—</div>
+    <p class="big-label">Est. Monthly AI Searches</p>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="kw-volume-out">—</div>
+        <div class="stat-label">Google Monthly Searches</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="base-rate">—</div>
+        <div class="stat-label">ChatGPT Adoption Rate</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="avg-ai-use">—</div>
+        <div class="stat-label">Avg AI Search Use</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="rel-diff">—</div>
+        <div class="stat-label">Relative Usage Diff</div>
+      </div>
+    </div>
+
+    <div class="formula-box" id="formula-breakdown"></div>
+  </div>
+</div>
+
+<!-- Tutorial video modal -->
+<div class="modal-backdrop" id="tutorial-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="close-modal">✕</button>
+    <video id="tutorial-video" controls>
+      <source src="/static/sparktoro-guide.mp4" type="video/mp4" />
+    </video>
+  </div>
+</div>
+
+<script>
+  // Modal
+  document.getElementById("open-tutorial").addEventListener("click", () => {
+    document.getElementById("tutorial-modal").classList.add("open");
+    document.getElementById("tutorial-video").play();
+  });
+  document.getElementById("close-modal").addEventListener("click", () => {
+    const v = document.getElementById("tutorial-video");
+    v.pause();
+    v.currentTime = 0;
+    document.getElementById("tutorial-modal").classList.remove("open");
+  });
+  document.getElementById("tutorial-modal").addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) {
+      const v = document.getElementById("tutorial-video");
+      v.pause();
+      v.currentTime = 0;
+      e.currentTarget.classList.remove("open");
+    }
+  });
+
+  const form = document.getElementById("form");
+  const btn = document.getElementById("submit-btn");
+  const resultsEl = document.getElementById("results");
+  const errorEl = document.getElementById("error-msg");
+
+  function fmt(n) {
+    return Number(n).toLocaleString();
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const keyword = document.getElementById("keyword").value.trim();
+    const country = document.getElementById("country").value;
+    const kw_volume = parseInt(document.getElementById("kw_volume").value, 10);
+    const relative_diff = parseFloat(document.getElementById("relative_diff").value);
+
+    btn.disabled = true;
+    btn.textContent = "Calculating…";
+    errorEl.style.display = "none";
+    resultsEl.style.display = "none";
+
+    try {
+      const res = await fetch("/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ keyword, country, kw_volume, relative_diff }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        errorEl.textContent = data.error || "An unexpected error occurred.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      document.getElementById("ai-volume").textContent = fmt(data.estimated_ai_volume);
+      document.getElementById("kw-volume-out").textContent = fmt(data.kw_volume);
+      document.getElementById("base-rate").textContent = data.base_rate + "%";
+      document.getElementById("avg-ai-use").textContent = (data.avg_ai_market_use * 100).toFixed(0) + "%";
+      document.getElementById("rel-diff").textContent = (data.relative_diff >= 0 ? "+" : "") + data.relative_diff;
+
+      const multiplier = (data.base_rate / 100 * (1 + data.relative_diff / 100) * data.avg_ai_market_use * 100).toFixed(2);
+      document.getElementById("formula-breakdown").textContent =
+        `${fmt(data.kw_volume)} × (${data.base_rate}% × (1 + ${data.relative_diff}%)) × ${(data.avg_ai_market_use * 100).toFixed(0)}%`
+        + `  =  ${fmt(data.estimated_ai_volume)}  (${multiplier}% of Google volume)`;
+
+      resultsEl.style.display = "block";
+    } catch (err) {
+      errorEl.textContent = "Network error — is the server running?";
+      errorEl.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Calculate AI Search Volume";
+    }
+  });
+</script>
+</body>
+</html>

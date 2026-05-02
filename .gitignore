@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+.tmp/
+remotion-guide/node_modules/
+remotion-guide/.cache/
